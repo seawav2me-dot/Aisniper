@@ -33,7 +33,7 @@ type TradeTab = "OPEN" | "CLOSED";
 export default function PaperTradingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { paperTrades, paperBalance, signals, openPaperTrade, closePaperTrade, user } = useApp();
+  const { paperTrades, paperBalance, signals, openPaperTrade, closePaperTrade, user, getLivePriceForSymbol } = useApp();
   const [activeTab, setActiveTab] = useState<TradeTab>("OPEN");
 
   const topPad = Platform.OS === "web" ? 56 : insets.top;
@@ -75,11 +75,15 @@ export default function PaperTradingScreen() {
   };
 
   const handleCloseTrade = (trade: PaperTrade) => {
-    const currentPrice = trade.entryPrice * (1 + (Math.random() - 0.4) * 0.05);
+    const livePrice = getLivePriceForSymbol(trade.pair);
+    const currentPrice = livePrice ?? trade.entryPrice;
+    const priceLabel = livePrice
+      ? `${formatPrice(currentPrice)} (سعر Binance اللحظي)`
+      : `${formatPrice(currentPrice)} (سعر الدخول — لا يوجد اتصال)`;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       `إغلاق الصفقة — ${trade.pair}`,
-      `السعر الحالي: ${formatPrice(currentPrice)}\nسيتم إغلاق الصفقة بهذا السعر.`,
+      `السعر الحالي: ${priceLabel}\nسيتم إغلاق الصفقة بهذا السعر.`,
       [
         { text: "إلغاء", style: "cancel" },
         {
@@ -186,12 +190,13 @@ export default function PaperTradingScreen() {
               <Text style={[styles.emptySub, { color: colors.textDim }]}>افتح صفقة من الإشارات النشطة أعلاه</Text>
             </View>
           ) : openTrades.map((trade) => {
-            const mockCurrentPrice = trade.entryPrice * (1 + (Math.random() - 0.4) * 0.03);
-            const mockPnl = trade.direction === "LONG"
-              ? ((mockCurrentPrice - trade.entryPrice) / trade.entryPrice) * trade.size * trade.leverage
-              : ((trade.entryPrice - mockCurrentPrice) / trade.entryPrice) * trade.size * trade.leverage;
+            const livePrice = getLivePriceForSymbol(trade.pair);
+            const currentPrice = livePrice ?? trade.entryPrice;
+            const livePnl = trade.direction === "LONG"
+              ? ((currentPrice - trade.entryPrice) / trade.entryPrice) * trade.size * trade.leverage
+              : ((trade.entryPrice - currentPrice) / trade.entryPrice) * trade.size * trade.leverage;
             return (
-              <View key={trade.id} style={[styles.tradeCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              <View key={trade.id} style={[styles.tradeCard, { backgroundColor: colors.card, borderColor: livePnl >= 0 ? colors.green + "33" : colors.red + "33" }]}>
                 <View style={styles.tradeHeader}>
                   <View style={styles.tradeLeft}>
                     <Text style={[styles.tradePair, { color: colors.text }]}>{trade.pair.replace("USDT", "")}/USDT</Text>
@@ -209,17 +214,23 @@ export default function PaperTradingScreen() {
                 </View>
                 <View style={styles.tradePrices}>
                   <View style={styles.tradePriceItem}>
-                    <Text style={[styles.tradePriceLabel, { color: colors.textMuted }]}>سعر الدخول</Text>
+                    <Text style={[styles.tradePriceLabel, { color: colors.textMuted }]}>دخول</Text>
                     <Text style={[styles.tradePriceVal, { color: colors.text }]}>{formatPrice(trade.entryPrice)}</Text>
                   </View>
                   <View style={styles.tradePriceItem}>
-                    <Text style={[styles.tradePriceLabel, { color: colors.textMuted }]}>الحجم</Text>
-                    <Text style={[styles.tradePriceVal, { color: colors.text }]}>${trade.size}</Text>
+                    <Text style={[styles.tradePriceLabel, { color: colors.textMuted }]}>
+                      {livePrice ? "🔴 حالي" : "الحجم"}
+                    </Text>
+                    <Text style={[styles.tradePriceVal, { color: livePrice ? colors.primary : colors.text }]}>
+                      {livePrice ? formatPrice(currentPrice) : `$${trade.size}`}
+                    </Text>
                   </View>
                   <View style={styles.tradePriceItem}>
-                    <Text style={[styles.tradePriceLabel, { color: colors.textMuted }]}>ر/خ تقديري</Text>
-                    <Text style={[styles.tradePriceVal, { color: mockPnl >= 0 ? colors.green : colors.red }]}>
-                      {formatPnl(mockPnl)} $
+                    <Text style={[styles.tradePriceLabel, { color: colors.textMuted }]}>
+                      {livePrice ? "ر/خ لحظي" : "ر/خ تقديري"}
+                    </Text>
+                    <Text style={[styles.tradePriceVal, { color: livePnl >= 0 ? colors.green : colors.red }]}>
+                      {formatPnl(livePnl)} $
                     </Text>
                   </View>
                 </View>
@@ -228,7 +239,7 @@ export default function PaperTradingScreen() {
                   onPress={() => handleCloseTrade(trade)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.closeBtnText, { color: colors.red }]}>إغلاق الصفقة</Text>
+                  <Text style={[styles.closeBtnText, { color: colors.red }]}>إغلاق بسعر Binance اللحظي</Text>
                 </TouchableOpacity>
               </View>
             );

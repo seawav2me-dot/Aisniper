@@ -58,17 +58,26 @@ export async function registerBotCommands(): Promise<void> {
   if (!token) return;
 
   const commands = [
-    { command: "start",          description: "بدء / رسالة الترحيب" },
-    { command: "market",         description: "حالة السوق الآن" },
-    { command: "signals",        description: "إشارات التداول النشطة" },
-    { command: "whale",          description: "تحركات الحيتان" },
-    { command: "scanner",        description: "السكانر الذكي" },
-    { command: "vip",            description: "الترقية إلى VIP" },
-    { command: "pay",            description: "إرسال إثبات الدفع" },
-    { command: "ref",            description: "الإحالات ومكافآتك" },
-    { command: "subscribe",      description: "تفعيل الإشعارات التلقائية" },
-    { command: "menu",           description: "القائمة الرئيسية" },
-    { command: "help",           description: "جميع الأوامر" },
+    { command: "start",           description: "بدء / رسالة الترحيب" },
+    { command: "market",          description: "حالة السوق الآن" },
+    { command: "signals",         description: "إشارات التداول النشطة" },
+    { command: "whale",           description: "تحركات الحيتان" },
+    { command: "scanner",         description: "السكانر الذكي" },
+    { command: "vip",             description: "الترقية إلى VIP" },
+    { command: "pay",             description: "إرسال إثبات الدفع" },
+    { command: "ref",             description: "الإحالات ومكافآتك" },
+    { command: "subscribe",       description: "تفعيل الإشعارات التلقائية" },
+    { command: "menu",            description: "القائمة الرئيسية" },
+    { command: "help",            description: "جميع الأوامر" },
+    { command: "approve",         description: "🔐 أدمن — قبول دفع: /approve <id> [vip|elite]" },
+    { command: "reject",          description: "🔐 أدمن — رفض دفع: /reject <id>" },
+    { command: "stats",           description: "🔐 أدمن — إحصائيات المشتركين" },
+    { command: "setprice",        description: "🔐 أدمن — تعديل السعر: /setprice <key> <amount>" },
+    { command: "prices",          description: "🔐 أدمن — عرض الأسعار الحالية" },
+    { command: "blast",           description: "🔐 أدمن — إرسال رسالة لكل المشتركين" },
+    { command: "weekly_report",   description: "🔐 أدمن — التقرير الأسبوعي" },
+    { command: "monthly_report",  description: "🔐 أدمن — التقرير الشهري" },
+    { command: "ref_stats",       description: "🔐 أدمن — إحصائيات الإحالات" },
   ];
 
   try {

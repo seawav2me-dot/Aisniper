@@ -40,10 +40,11 @@ async function getMessage(type: BroadcastType): Promise<string> {
 
 async function getActiveSubscribers(vipOnly = false) {
   if (vipOnly) {
-    return db
+    const rows = await db
       .select()
       .from(subscribersTable)
       .where(eq(subscribersTable.isActive, true));
+    return rows.filter((r) => r.tier !== "free");
   }
   return db
     .select()

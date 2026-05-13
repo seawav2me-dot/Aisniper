@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { fetchPrices, WS_PRICES_URL, API_BASE, type LivePricePayload } from "../constants/api";
+import { fetchPrices, WS_PRICES_URL, API_BASE, type LivePricePayload, getPriceForSymbol } from "../constants/api";
 
 export type SignalDirection = "LONG" | "SHORT";
 export type SignalStatus = "ACTIVE" | "TP1_HIT" | "TP2_HIT" | "TP3_HIT" | "SL_HIT" | "CLOSED_WIN" | "CLOSED_LOSS";
@@ -140,6 +140,8 @@ interface AppContextType {
   setLanguage: (lang: Language) => void;
   setSignalQualityFilter: (filter: SignalQualityFilter) => void;
   eliteSignalCount: number;
+  latestPrices: LivePricePayload | null;
+  getLivePriceForSymbol: (symbol: string) => number | null;
 }
 
 const MOCK_SIGNALS: Signal[] = [
@@ -344,11 +346,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [subscriptionPrices, setSubscriptionPrices] = useState<SubscriptionPrices>(DEFAULT_PRICES);
   const [paperTrades, setPaperTrades] = useState<PaperTrade[]>([]);
   const [paperBalance, setPaperBalance] = useState<number>(10000);
+  const [latestPrices, setLatestPrices] = useState<LivePricePayload | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const wsRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const applyLivePrices = useCallback((live: LivePricePayload) => {
+    setLatestPrices(live);
     setMarket((prev) => ({
       ...prev,
       btcPrice: live.btc,
@@ -617,6 +621,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (s) => s.score >= 90 && (s.status === "ACTIVE" || s.status === "TP1_HIT")
   ).length;
 
+  const getLivePriceForSymbol = useCallback((symbol: string): number | null => {
+    return getPriceForSymbol(latestPrices, symbol);
+  }, [latestPrices]);
+
   return (
     <AppContext.Provider value={{
       market, signals, whaleAlerts, hotCoins, user,
@@ -625,6 +633,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateSubscriptionPrices, canViewFreeSignal, recordFreeSignalView,
       openPaperTrade, closePaperTrade,
       setLanguage, setSignalQualityFilter, eliteSignalCount,
+      latestPrices, getLivePriceForSymbol,
     }}>
       {children}
     </AppContext.Provider>

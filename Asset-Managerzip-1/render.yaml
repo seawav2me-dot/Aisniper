@@ -2,7 +2,7 @@ services:
   - type: web
     name: aisniper-api
     env: node
-    plan: free
+    plan: starter
     region: oregon
     buildCommand: npm install -g pnpm@10 && pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build
     startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
@@ -10,6 +10,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: "10000"
       - key: USE_WEBHOOK
         value: "false"
       - key: AUTO_MIGRATE
@@ -26,3 +28,18 @@ services:
         sync: false
       - key: BOT_USERNAME
         value: Strongsmartsignal_bot
+
+  - type: cron
+    name: aisniper-keepalive
+    env: node
+    schedule: "*/10 * * * *"
+    buildCommand: echo "keepalive"
+    startCommand: >
+      node -e "
+        const url = process.env.HEALTH_URL;
+        if (!url) { console.log('HEALTH_URL not set'); process.exit(0); }
+        fetch(url).then(r => console.log('ping ok', r.status)).catch(e => console.error('ping fail', e.message));
+      "
+    envVars:
+      - key: HEALTH_URL
+        value: https://aisniper-api.onrender.com/api/health

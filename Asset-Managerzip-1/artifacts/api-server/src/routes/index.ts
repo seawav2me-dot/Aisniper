@@ -6,6 +6,7 @@ import broadcastRouter from "./broadcast";
 import pricesRouter from "./prices";
 import signalsRouter from "./signals";
 import performanceRouter from "./performance";
+import openTradesRouter from "./openTrades";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(broadcastRouter);
 router.use(pricesRouter);
 router.use(signalsRouter);
 router.use(performanceRouter);
+router.use(openTradesRouter);
 
 export default router;
