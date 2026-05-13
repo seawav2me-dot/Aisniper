@@ -5,6 +5,8 @@ import { startScheduler } from "./lib/scheduler";
 import { attachPriceWsServer } from "./lib/priceWsServer";
 import { validateEnv, runAutoMigrate, registerBotCommands } from "./lib/startup";
 import { startPolling } from "./lib/botPoller";
+import { startLivePriceMonitor, stopLivePriceMonitor } from "./lib/livePriceMonitor";
+import { startPaperTradeMonitor, stopPaperTradeMonitor } from "./lib/paperTradeMonitor";
 
 validateEnv();
 
@@ -32,11 +34,22 @@ async function bootstrap() {
   startScheduler();
   await registerBotCommands();
 
+  startLivePriceMonitor();
+  startPaperTradeMonitor();
+  logger.info("Live price monitor + paper trade auto-close: started");
+
   if (!useWebhook) {
     startPolling(port);
   } else {
     logger.info("Webhook mode active — POST /api/telegram/setup-webhook to register URL");
   }
+
+  process.on("SIGTERM", () => {
+    logger.info("SIGTERM received — shutting down gracefully");
+    stopPaperTradeMonitor();
+    stopLivePriceMonitor();
+    process.exit(0);
+  });
 }
 
 bootstrap().catch((err) => {
