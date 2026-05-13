@@ -8,7 +8,7 @@ import { useT } from "@/hooks/useT";
 import { CoinRow } from "@/components/CoinRow";
 import { AnalysisLayersChart, AnalysisLayer } from "@/components/charts/AnalysisLayersChart";
 
-type TimeFrame = "15M" | "1H" | "4H";
+type TimeFrame = "15M" | "1H" | "4H" | "1D";
 
 export default function ScannerScreen() {
   const colors = useColors();
@@ -30,6 +30,7 @@ export default function ScannerScreen() {
     { key: "15M", label: t.scanner.timeframes["15M"] },
     { key: "1H", label: t.scanner.timeframes["1H"] },
     { key: "4H", label: t.scanner.timeframes["4H"] },
+    { key: "1D", label: "1D" },
   ];
 
   const analysisLayers: AnalysisLayer[] = t.scanner.analysisLayers.map((name, i) => ({

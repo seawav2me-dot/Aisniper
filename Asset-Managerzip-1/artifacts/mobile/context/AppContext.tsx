@@ -435,6 +435,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const saved = await AsyncStorage.getItem("@sniper_prices");
       if (saved) setSubscriptionPrices(JSON.parse(saved));
     } catch {}
+    if (API_BASE) {
+      try {
+        const res = await fetch(`${API_BASE}/api/subscription-prices`, { signal: AbortSignal.timeout(6_000) });
+        if (res.ok) {
+          const data = (await res.json()) as { ok: boolean; prices: { vipMonthly: number; vipAnnual: number; eliteMonthly: number; eliteAnnual: number } };
+          if (data.ok && data.prices) {
+            const merged: SubscriptionPrices = {
+              vipMonthly: data.prices.vipMonthly,
+              vipQuarterly: Math.round(data.prices.vipMonthly * 2.8),
+              vipAnnual: data.prices.vipAnnual,
+              eliteMonthly: data.prices.eliteMonthly,
+              eliteAnnual: data.prices.eliteAnnual,
+            };
+            setSubscriptionPrices(merged);
+            await AsyncStorage.setItem("@sniper_prices", JSON.stringify(merged));
+          }
+        }
+      } catch {}
+    }
   };
 
   const loadPaperTrades = async () => {

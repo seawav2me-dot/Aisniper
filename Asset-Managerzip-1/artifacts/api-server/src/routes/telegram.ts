@@ -134,6 +134,32 @@ async function handleAdminCommand(
     return MSG.adminBlastSent(sent);
   }
 
+  if (cmd === "/weekly_report") {
+    try {
+      const { getPerformanceSummary } = await import("../lib/paperTradingService");
+      const summary = await getPerformanceSummary();
+      const w = summary.weekly[0];
+      const at = summary.allTime;
+      if (!w) return "❌ لا توجد بيانات أسبوعية بعد.";
+      return `📊 <b>التقرير الأسبوعي</b>\n\nالأسبوع: ${w.weekLabel}\nصفقات: ${w.totalSignals}  |  نجاح: ${w.wins}  |  خسارة: ${w.losses}\nنسبة النجاح: <b>${w.winRate}%</b>\nربح على $100: <b>+$${w.profitOn100}</b>\n\nالكلي: ${at.totalSignals} صفقة  |  ${at.winRate}% نجاح`;
+    } catch {
+      return "❌ تعذر جلب بيانات الأداء.";
+    }
+  }
+
+  if (cmd === "/monthly_report") {
+    try {
+      const { getPerformanceSummary } = await import("../lib/paperTradingService");
+      const summary = await getPerformanceSummary();
+      const m = summary.monthly[0];
+      const at = summary.allTime;
+      if (!m) return "❌ لا توجد بيانات شهرية بعد.";
+      return `🏆 <b>التقرير الشهري</b>\n\n${m.label}\nصفقات: ${m.totalSignals}  |  نجاح: ${m.wins}  |  خسارة: ${m.losses}\nنسبة النجاح: <b>${m.winRate}%</b>\nربح على $100: <b>+$${m.profitOn100}</b>\n\nالكلي: $${at.totalProfit} ربح  |  أفضل شهر: ${at.bestMonth}`;
+    } catch {
+      return "❌ تعذر جلب بيانات الأداء.";
+    }
+  }
+
   return "";
 }
 
@@ -183,7 +209,7 @@ router.post("/telegram/webhook", async (req, res) => {
   const args = parts.slice(1);
 
   if (isAdmin) {
-    const adminCmds = ["/approve", "/reject", "/stats", "/ref_stats", "/setprice", "/prices", "/blast"];
+    const adminCmds = ["/approve", "/reject", "/stats", "/ref_stats", "/setprice", "/prices", "/blast", "/weekly_report", "/monthly_report"];
     if (adminCmds.includes(cmd)) {
       const reply = await handleAdminCommand(cmd, args, chatId);
       if (reply) await sendMessage(chatId, reply);

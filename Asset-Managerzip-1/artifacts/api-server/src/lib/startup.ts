@@ -58,17 +58,17 @@ export async function registerBotCommands(): Promise<void> {
   if (!token) return;
 
   const commands = [
-    { command: "start",       description: "بدء / رسالة الترحيب" },
-    { command: "market",      description: "حالة السوق الآن" },
-    { command: "signals",     description: "إشارات التداول النشطة" },
-    { command: "whale",       description: "تحركات الحيتان" },
-    { command: "scanner",     description: "السكانر الذكي" },
-    { command: "vip",         description: "الترقية إلى VIP" },
-    { command: "pay",         description: "إرسال إثبات الدفع" },
-    { command: "ref",         description: "الإحالات ومكافآتك" },
-    { command: "subscribe",   description: "تفعيل الإشعارات التلقائية" },
-    { command: "menu",        description: "القائمة الرئيسية" },
-    { command: "help",        description: "جميع الأوامر" },
+    { command: "start",          description: "بدء / رسالة الترحيب" },
+    { command: "market",         description: "حالة السوق الآن" },
+    { command: "signals",        description: "إشارات التداول النشطة" },
+    { command: "whale",          description: "تحركات الحيتان" },
+    { command: "scanner",        description: "السكانر الذكي" },
+    { command: "vip",            description: "الترقية إلى VIP" },
+    { command: "pay",            description: "إرسال إثبات الدفع" },
+    { command: "ref",            description: "الإحالات ومكافآتك" },
+    { command: "subscribe",      description: "تفعيل الإشعارات التلقائية" },
+    { command: "menu",           description: "القائمة الرئيسية" },
+    { command: "help",           description: "جميع الأوامر" },
   ];
 
   try {

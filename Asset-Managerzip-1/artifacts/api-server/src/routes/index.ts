@@ -5,6 +5,7 @@ import configRouter from "./config";
 import broadcastRouter from "./broadcast";
 import pricesRouter from "./prices";
 import signalsRouter from "./signals";
+import performanceRouter from "./performance";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(configRouter);
 router.use(broadcastRouter);
 router.use(pricesRouter);
 router.use(signalsRouter);
+router.use(performanceRouter);
 
 export default router;

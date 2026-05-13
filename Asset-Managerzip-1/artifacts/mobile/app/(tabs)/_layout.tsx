@@ -89,6 +89,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Feather name="user" size={20} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="performance"
+        options={{
+          title: "الأداء",
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="chart-bar" size={22} color={color} />,
+        }}
+      />
       <Tabs.Screen name="whale" options={{ href: null }} />
     </Tabs>
   );
