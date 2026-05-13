@@ -1,0 +1,18 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health";
+import telegramRouter from "./telegram";
+import configRouter from "./config";
+import broadcastRouter from "./broadcast";
+import pricesRouter from "./prices";
+import signalsRouter from "./signals";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(telegramRouter);
+router.use(configRouter);
+router.use(broadcastRouter);
+router.use(pricesRouter);
+router.use(signalsRouter);
+
+export default router;
