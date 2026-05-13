@@ -7,9 +7,20 @@ export const API_BASE: string =
   env["apiUrl"] ??
   "";
 
+export const API_KEY: string =
+  (process.env["EXPO_PUBLIC_API_KEY"] as string | undefined) ??
+  env["apiKey"] ??
+  "";
+
 export const WS_PRICES_URL: string = API_BASE
   ? API_BASE.replace(/^http/, "ws") + "/ws/prices"
   : "";
+
+export function apiHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { Accept: "application/json", ...extra };
+  if (API_KEY) headers["x-api-key"] = API_KEY;
+  return headers;
+}
 
 export interface LivePricePayload {
   btc: number;
@@ -56,7 +67,7 @@ export async function fetchPrices(): Promise<LivePricePayload | null> {
   if (!API_BASE) return null;
   try {
     const res = await fetch(`${API_BASE}/api/prices`, {
-      headers: { Accept: "application/json" },
+      headers: apiHeaders(),
       signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return null;

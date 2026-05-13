@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { fetchPrices, WS_PRICES_URL, API_BASE, type LivePricePayload, getPriceForSymbol } from "../constants/api";
+import { fetchPrices, WS_PRICES_URL, API_BASE, apiHeaders, type LivePricePayload, getPriceForSymbol } from "../constants/api";
 
 export type SignalDirection = "LONG" | "SHORT";
 export type SignalStatus = "ACTIVE" | "TP1_HIT" | "TP2_HIT" | "TP3_HIT" | "SL_HIT" | "CLOSED_WIN" | "CLOSED_LOSS";
@@ -414,7 +414,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!API_BASE) return;
     const fetchApiSignals = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/signals`, { signal: AbortSignal.timeout(8_000) });
+        const res = await fetch(`${API_BASE}/api/signals`, { headers: apiHeaders(), signal: AbortSignal.timeout(8_000) });
         if (!res.ok) return;
         const data = (await res.json()) as { ok: boolean; signals: Signal[] };
         if (data.ok && Array.isArray(data.signals) && data.signals.length > 0) {
@@ -441,7 +441,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
     if (API_BASE) {
       try {
-        const res = await fetch(`${API_BASE}/api/subscription-prices`, { signal: AbortSignal.timeout(6_000) });
+        const res = await fetch(`${API_BASE}/api/subscription-prices`, { headers: apiHeaders(), signal: AbortSignal.timeout(6_000) });
         if (res.ok) {
           const data = (await res.json()) as { ok: boolean; prices: { vipMonthly: number; vipAnnual: number; eliteMonthly: number; eliteAnnual: number } };
           if (data.ok && data.prices) {

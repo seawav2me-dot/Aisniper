@@ -34,6 +34,16 @@ export function validateEnv(): void {
       "   أرسل /start للبوت وانظر chat_id في الـ logs لتحديده."
     );
   }
+
+  if (!process.env["API_KEY"]) {
+    logger.warn(
+      "⚠️  API_KEY غير موجود — جميع endpoints مفتوحة بدون مصادقة.\n" +
+      "   يُنصح بإضافة API_KEY في إعدادات Render لحماية الـ API.\n" +
+      "   مثال: API_KEY=sniper_sk_xxxxxxxxxxxxxxxxxxxxxxxx"
+    );
+  } else {
+    logger.info("API_KEY: مفعّل — الـ endpoints محمية");
+  }
 }
 
 export async function runAutoMigrate(): Promise<void> {

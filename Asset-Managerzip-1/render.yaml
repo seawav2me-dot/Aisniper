@@ -28,6 +28,8 @@ services:
         sync: false
       - key: BOT_USERNAME
         value: Strongsmartsignal_bot
+      - key: API_KEY
+        sync: false
 
   - type: cron
     name: aisniper-keepalive
