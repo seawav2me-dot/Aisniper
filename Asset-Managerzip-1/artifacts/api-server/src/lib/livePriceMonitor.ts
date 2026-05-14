@@ -1,22 +1,15 @@
 import { WebSocket } from "ws";
 import { logger } from "./logger";
+import { getActiveSymbols, onSymbolsChanged } from "./symbolDiscovery";
 
 export type SymbolPriceMap = Map<string, number>;
 
 const priceMap: SymbolPriceMap = new Map();
-let ws: WebSocket | null = null;
-let reconnectTimer: NodeJS.Timeout | null = null;
+const wsConnections: WebSocket[] = [];
+let reconnectTimers: NodeJS.Timeout[] = [];
 let isRunning = false;
 
-const TRACKED_SYMBOLS = [
-  "btcusdt", "ethusdt", "solusdt", "xrpusdt", "bnbusdt",
-  "linkusdt", "avaxusdt", "arbusdt", "adausdt", "dotusdt",
-  "maticusdt", "uniusdt", "aaveusdt", "atomusdt", "nearusdt",
-];
-
-const BINANCE_WS_URL =
-  "wss://stream.binance.com:9443/stream?streams=" +
-  TRACKED_SYMBOLS.map((s) => `${s}@miniTicker`).join("/");
+const BATCH_SIZE = 300;
 
 interface MiniTicker {
   e: "24hrMiniTicker";
@@ -29,16 +22,27 @@ interface StreamMessage {
   data: MiniTicker;
 }
 
-function connect() {
-  if (!isRunning) return;
+function buildUrl(symbols: string[]): string {
+  return (
+    "wss://stream.binance.com:9443/stream?streams=" +
+    symbols.map((s) => `${s.toLowerCase()}@miniTicker`).join("/")
+  );
+}
 
-  logger.info({ url: BINANCE_WS_URL }, "livePriceMonitor: connecting to Binance WS");
+function connectBatch(symbols: string[], batchIndex: number): WebSocket {
+  const url = buildUrl(symbols);
+  logger.info(
+    { batch: batchIndex, symbols: symbols.length },
+    "livePriceMonitor: connecting batch"
+  );
 
-  ws = new WebSocket(BINANCE_WS_URL);
+  const ws = new WebSocket(url);
 
   ws.on("open", () => {
-    logger.info({ symbols: TRACKED_SYMBOLS.length }, "livePriceMonitor: connected — streaming live prices");
-    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    logger.info(
+      { batch: batchIndex, symbols: symbols.length },
+      "livePriceMonitor: batch connected"
+    );
   });
 
   ws.on("message", (raw: Buffer) => {
@@ -55,44 +59,88 @@ function connect() {
 
   ws.on("close", (code, reason) => {
     logger.warn(
-      { code, reason: reason.toString() },
+      { batch: batchIndex, code, reason: reason.toString() },
       "livePriceMonitor: WS closed — reconnecting in 5s"
     );
-    scheduleReconnect(5_000);
+    if (isRunning) {
+      const t = setTimeout(() => {
+        if (isRunning) {
+          const idx = wsConnections.indexOf(ws);
+          if (idx !== -1) {
+            wsConnections[idx] = connectBatch(symbols, batchIndex);
+          }
+        }
+      }, 5_000);
+      reconnectTimers.push(t);
+    }
   });
 
   ws.on("error", (err) => {
-    logger.error({ err }, "livePriceMonitor: WS error");
-    ws?.terminate();
+    logger.error({ batch: batchIndex, err }, "livePriceMonitor: WS error");
+    ws.terminate();
   });
 
   const pingTimer = setInterval(() => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.ping();
-    }
+    if (ws.readyState === WebSocket.OPEN) ws.ping();
   }, 30_000);
 
   ws.on("close", () => clearInterval(pingTimer));
+
+  return ws;
 }
 
-function scheduleReconnect(delay: number) {
-  if (!isRunning) return;
-  if (reconnectTimer) clearTimeout(reconnectTimer);
-  reconnectTimer = setTimeout(() => {
-    if (isRunning) connect();
-  }, delay);
+function disconnectAll() {
+  for (const t of reconnectTimers) clearTimeout(t);
+  reconnectTimers = [];
+  for (const ws of wsConnections) {
+    try { ws.terminate(); } catch {}
+  }
+  wsConnections.length = 0;
+}
+
+function connectAll(symbols: string[]) {
+  disconnectAll();
+
+  if (symbols.length === 0) {
+    logger.warn("livePriceMonitor: no symbols to track");
+    return;
+  }
+
+  for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
+    const batch = symbols.slice(i, i + BATCH_SIZE);
+    wsConnections.push(connectBatch(batch, Math.floor(i / BATCH_SIZE)));
+  }
+
+  logger.info(
+    { total: symbols.length, batches: wsConnections.length },
+    "livePriceMonitor: all batches connected"
+  );
 }
 
 export function startLivePriceMonitor() {
   isRunning = true;
-  connect();
-  logger.info("livePriceMonitor: started");
+
+  const symbols = getActiveSymbols();
+  connectAll(symbols);
+
+  onSymbolsChanged((newSymbols) => {
+    if (!isRunning) return;
+    logger.info(
+      { prev: symbols.length, next: newSymbols.length },
+      "livePriceMonitor: symbol list updated — reconnecting"
+    );
+    connectAll(newSymbols);
+  });
+
+  logger.info(
+    { symbols: symbols.length, batches: Math.ceil(symbols.length / BATCH_SIZE) },
+    "livePriceMonitor: started"
+  );
 }
 
 export function stopLivePriceMonitor() {
   isRunning = false;
-  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-  if (ws) { ws.terminate(); ws = null; }
+  disconnectAll();
   logger.info("livePriceMonitor: stopped");
 }
 

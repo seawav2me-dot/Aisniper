@@ -63,6 +63,27 @@ export function getPriceForSymbol(
   return map[key] ?? null;
 }
 
+export interface ActiveSymbolsPayload {
+  symbols: string[];
+  count: number;
+  lastFetchedAt: number;
+}
+
+export async function fetchActiveSymbols(): Promise<ActiveSymbolsPayload | null> {
+  if (!API_BASE) return null;
+  try {
+    const res = await fetch(`${API_BASE}/api/active-symbols`, {
+      headers: apiHeaders(),
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { ok: boolean; data: ActiveSymbolsPayload };
+    return json.ok ? json.data : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchPrices(): Promise<LivePricePayload | null> {
   if (!API_BASE) return null;
   try {

@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { useT } from "@/hooks/useT";
 import { CoinRow } from "@/components/CoinRow";
 import { AnalysisLayersChart, AnalysisLayer } from "@/components/charts/AnalysisLayersChart";
+import { fetchActiveSymbols } from "@/constants/api";
 
 type TimeFrame = "15M" | "1H" | "4H" | "1D";
 
@@ -21,10 +22,18 @@ export default function ScannerScreen() {
   const [lastScan, setLastScan] = useState<Date>(new Date());
   const [layerValues, setLayerValues] = useState<number[]>([82, 75, 68, 71, 64, 55, 59]);
 
+  const [activeSymbolCount, setActiveSymbolCount] = useState<number | null>(null);
+
   const scanAnim = useRef(new Animated.Value(0)).current;
   const radarAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const topPad = Platform.OS === "web" ? 56 : insets.top;
+
+  useEffect(() => {
+    fetchActiveSymbols()
+      .then((data) => { if (data) setActiveSymbolCount(data.count); })
+      .catch(() => {});
+  }, []);
 
   const TIME_FRAMES: { key: TimeFrame; label: string }[] = [
     { key: "15M", label: t.scanner.timeframes["15M"] },
@@ -131,7 +140,7 @@ export default function ScannerScreen() {
               </Text>
               <View style={styles.scanMeta}>
                 {[
-                  { label: t.scanner.pairs, val: "142" },
+                  { label: t.scanner.pairs, val: activeSymbolCount !== null ? String(activeSymbolCount) : "..." },
                   { label: t.scanner.layers, val: "7" },
                   { label: t.scanner.frames, val: "3" },
                 ].map((m) => (
