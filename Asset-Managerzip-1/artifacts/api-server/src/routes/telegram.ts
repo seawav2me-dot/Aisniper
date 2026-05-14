@@ -21,6 +21,7 @@ import { getVipPrices, setSetting, isValidSettingKey } from "../lib/settingsServ
 import { checkSignalQuota, checkScanQuota } from "../lib/freeQuotaService";
 import { getLivePrice } from "../lib/livePriceMonitor";
 import { ensurePriceTracked } from "../lib/onDemandPriceTracker";
+import { generateSignal, formatSignalMessage } from "../lib/signalGenerator";
 
 const router: IRouter = Router();
 
@@ -363,6 +364,45 @@ router.post("/telegram/webhook", async (req, res) => {
         `السعر: <b>$${formatPrice(price)}</b>\n` +
         `${trackNote}`
       );
+      break;
+    }
+
+    case "/analyze": {
+      const rawSym = args[0];
+      if (!rawSym) {
+        await sendMessage(chatId,
+          "❌ يرجى تحديد رمز العملة\n\n" +
+          "مثال:\n" +
+          "<code>/analyze BTC</code>\n" +
+          "<code>/analyze ETH</code>\n" +
+          "<code>/analyze PEPE</code>"
+        );
+        break;
+      }
+
+      const sym = rawSym.toUpperCase().endsWith("USDT")
+        ? rawSym.toUpperCase()
+        : `${rawSym.toUpperCase()}USDT`;
+
+      await sendMessage(chatId,
+        `🧠 جارٍ تحليل <b>${sym}</b>...\n<i>AI Scanner يفحص 7 طبقات تقنية...</i>`
+      );
+
+      let price = getLivePrice(sym);
+      if (!price) {
+        price = await ensurePriceTracked(sym);
+      }
+
+      if (!price) {
+        await sendMessage(chatId,
+          `❌ لم يتم العثور على <b>${sym}</b> على Binance.\n\nتأكد من رمز العملة وأنه مدرج كزوج USDT.\nمثال: <code>/analyze BTC</code> أو <code>/analyze PEPEUSDT</code>`
+        );
+        break;
+      }
+
+      const signal = generateSignal(sym, price);
+      const msg = formatSignalMessage(signal);
+      await sendMessage(chatId, msg);
       break;
     }
 
