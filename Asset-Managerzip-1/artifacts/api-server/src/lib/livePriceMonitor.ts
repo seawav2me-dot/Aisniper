@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import { logger } from "./logger";
 import { getActiveSymbols, onSymbolsChanged } from "./symbolDiscovery";
+import { getTempPrice } from "./onDemandPriceTracker";
 
 export type SymbolPriceMap = Map<string, number>;
 
@@ -145,7 +146,10 @@ export function stopLivePriceMonitor() {
 }
 
 export function getLivePrice(symbol: string): number | null {
-  return priceMap.get(symbol.toUpperCase()) ?? null;
+  const key = symbol.toUpperCase().endsWith("USDT")
+    ? symbol.toUpperCase()
+    : `${symbol.toUpperCase()}USDT`;
+  return priceMap.get(key) ?? getTempPrice(key) ?? null;
 }
 
 export function getAllLivePrices(): Record<string, number> {

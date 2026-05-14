@@ -8,6 +8,7 @@ import { startPolling } from "./lib/botPoller";
 import { startSymbolDiscovery, stopSymbolDiscovery } from "./lib/symbolDiscovery";
 import { startLivePriceMonitor, stopLivePriceMonitor } from "./lib/livePriceMonitor";
 import { startPaperTradeMonitor, stopPaperTradeMonitor } from "./lib/paperTradeMonitor";
+import { startOnDemandTracker, stopOnDemandTracker } from "./lib/onDemandPriceTracker";
 
 validateEnv();
 
@@ -37,9 +38,10 @@ async function bootstrap() {
   logger.info("symbolDiscovery: initializing — fetching active Binance USDT pairs...");
   await startSymbolDiscovery();
 
+  startOnDemandTracker();
   startLivePriceMonitor();
   startPaperTradeMonitor();
-  logger.info("Symbol discovery + live price monitor + paper trade auto-close: started");
+  logger.info("Symbol discovery + on-demand tracker + live price monitor + paper trade auto-close: started");
 
   if (!useWebhook) {
     startPolling(port);
@@ -51,6 +53,7 @@ async function bootstrap() {
     logger.info("SIGTERM received — shutting down gracefully");
     stopPaperTradeMonitor();
     stopLivePriceMonitor();
+    stopOnDemandTracker();
     stopSymbolDiscovery();
     process.exit(0);
   });

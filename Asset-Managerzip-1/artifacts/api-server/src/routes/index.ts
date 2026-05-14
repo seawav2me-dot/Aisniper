@@ -8,6 +8,7 @@ import signalsRouter from "./signals";
 import performanceRouter from "./performance";
 import openTradesRouter from "./openTrades";
 import activeSymbolsRouter from "./activeSymbols";
+import adminSymbolsRouter from "./adminSymbols";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(signalsRouter);
 router.use(performanceRouter);
 router.use(openTradesRouter);
 router.use(activeSymbolsRouter);
+router.use(adminSymbolsRouter);
 
 export default router;

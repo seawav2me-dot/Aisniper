@@ -19,6 +19,8 @@ import {
 import { getLiveMarketData, formatPrice } from "../lib/priceService";
 import { getVipPrices, setSetting, isValidSettingKey } from "../lib/settingsService";
 import { checkSignalQuota, checkScanQuota } from "../lib/freeQuotaService";
+import { getLivePrice } from "../lib/livePriceMonitor";
+import { ensurePriceTracked } from "../lib/onDemandPriceTracker";
 
 const router: IRouter = Router();
 
@@ -322,6 +324,47 @@ router.post("/telegram/webhook", async (req, res) => {
     case "/help":
       await sendMessage(chatId, MSG.help);
       break;
+
+    case "/price": {
+      const rawSym = args[0];
+      if (!rawSym) {
+        await sendMessage(chatId,
+          "❌ يرجى تحديد رمز العملة\nمثال: <code>/price BTC</code> أو <code>/price PEPEUSDT</code>"
+        );
+        break;
+      }
+
+      const sym = rawSym.toUpperCase().endsWith("USDT")
+        ? rawSym.toUpperCase()
+        : `${rawSym.toUpperCase()}USDT`;
+
+      await sendMessage(chatId, `🔍 جارٍ جلب سعر <b>${sym}</b>...`);
+
+      let price = getLivePrice(sym);
+
+      if (!price) {
+        price = await ensurePriceTracked(sym);
+      }
+
+      if (!price) {
+        await sendMessage(chatId,
+          `❌ لم يتم العثور على <b>${sym}</b> على Binance.\n\nتأكد من رمز العملة وأنه مدرج كزوج USDT.`
+        );
+        break;
+      }
+
+      const isTrackedLive = getLivePrice(sym) !== null;
+      const trackNote = isTrackedLive
+        ? "🟢 سعر لحظي (WebSocket)"
+        : "🟡 سعر مباشر — تم تفعيل التتبع لمدة ساعتين";
+
+      await sendMessage(chatId,
+        `💰 <b>${sym}</b>\n\n` +
+        `السعر: <b>$${formatPrice(price)}</b>\n` +
+        `${trackNote}`
+      );
+      break;
+    }
 
     default:
       await sendMessage(chatId, MSG.menu);

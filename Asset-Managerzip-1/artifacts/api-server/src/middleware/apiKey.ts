@@ -9,6 +9,7 @@ const BYPASS_PATHS = [
   "/api/prices",
   "/api/prices/live",
   "/api/subscription-prices",
+  "/api/active-symbols",
 ];
 
 export function apiKeyMiddleware(req: Request, res: Response, next: NextFunction): void {

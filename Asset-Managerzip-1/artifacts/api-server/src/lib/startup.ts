@@ -75,6 +75,7 @@ export async function registerBotCommands(): Promise<void> {
     { command: "scanner",         description: "السكانر الذكي" },
     { command: "vip",             description: "الترقية إلى VIP" },
     { command: "pay",             description: "إرسال إثبات الدفع" },
+    { command: "price",           description: "سعر أي عملة: /price BTC أو /price PEPE" },
     { command: "ref",             description: "الإحالات ومكافآتك" },
     { command: "subscribe",       description: "تفعيل الإشعارات التلقائية" },
     { command: "menu",            description: "القائمة الرئيسية" },
