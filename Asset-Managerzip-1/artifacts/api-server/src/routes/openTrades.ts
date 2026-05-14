@@ -7,8 +7,13 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-router.get("/open-trades", async (_req, res) => {
+router.get("/open-trades", async (req, res) => {
   try {
+    const FREE_PAPER_LIMIT = 2;
+    const FREE_PAPER_DELAY_MS = 30 * 60 * 1000;
+    const tier = (req.query["tier"] as string | undefined) ?? "free";
+    const isFree = tier === "free";
+
     const rows = await db
       .select()
       .from(signalHistoryTable)
@@ -61,7 +66,23 @@ router.get("/open-trades", async (_req, res) => {
       };
     });
 
-    res.json({ ok: true, trades, count: trades.length });
+    const visibleTrades = isFree
+      ? trades
+          .filter((t) => {
+            const openedMs = t.openedAt ? new Date(t.openedAt).getTime() : 0;
+            return Date.now() - openedMs >= FREE_PAPER_DELAY_MS;
+          })
+          .slice(0, FREE_PAPER_LIMIT)
+      : trades;
+
+    res.json({
+      ok: true,
+      trades: visibleTrades,
+      count: visibleTrades.length,
+      freeUser: isFree,
+      paperTradeLimit: isFree ? FREE_PAPER_LIMIT : null,
+      delayMinutes: isFree ? 30 : 0,
+    });
   } catch (e) {
     logger.error({ e }, "GET /open-trades error");
     res.status(500).json({ ok: false, error: "Failed to fetch open trades" });

@@ -18,7 +18,7 @@ import {
 } from "../lib/referralService";
 import { getLiveMarketData, formatPrice } from "../lib/priceService";
 import { getVipPrices, setSetting, isValidSettingKey } from "../lib/settingsService";
-import { checkSignalQuota, checkScanQuota } from "../lib/freeQuotaService";
+import { checkSignalQuota, checkScanQuota, checkQuota } from "../lib/freeQuotaService";
 import { getLivePrice } from "../lib/livePriceMonitor";
 import { ensurePriceTracked } from "../lib/onDemandPriceTracker";
 import { generateSignal, formatSignalMessage } from "../lib/signalGenerator";
@@ -243,11 +243,23 @@ router.post("/telegram/webhook", async (req, res) => {
     }
 
     case "/market": {
+      const mq = await checkQuota(chatId, "market");
+      if (!mq.allowed) {
+        const prices = await getVipPrices();
+        await sendMessage(chatId,
+          `⛔ انتهت استخداماتك المجانية لليوم (2/2)\n\n${mq.resetMsg}\n\n🔑 للاستخدام غير المحدود:\n/vip — اشترك بـ <b>$${prices.vipMonthly}/شهر</b>`
+        );
+        break;
+      }
       const live = await getLiveMarketData();
       const marketMsg = live
         ? MSG.market(live.marketStatus, formatPrice(live.btc), live.fearGreed, live.winRate)
         : MSG.market("BULLISH", "67,340", 71, 87);
-      await sendMessage(chatId, marketMsg);
+      if (mq.remaining === 0) {
+        await sendMessage(chatId, marketMsg + "\n\n<i>⚠️ استخدمت آخر مرة مجانية اليوم. تجدد غداً أو اشترك بـ /vip</i>");
+      } else {
+        await sendMessage(chatId, marketMsg);
+      }
       break;
     }
 
@@ -265,9 +277,22 @@ router.post("/telegram/webhook", async (req, res) => {
       break;
     }
 
-    case "/whale":
-      await sendMessage(chatId, MSG.whales);
+    case "/whale": {
+      const wq = await checkQuota(chatId, "whale");
+      if (!wq.allowed) {
+        const prices = await getVipPrices();
+        await sendMessage(chatId,
+          `⛔ انتهت استخداماتك المجانية لليوم (2/2)\n\n${wq.resetMsg}\n\n🔑 للاستخدام غير المحدود:\n/vip — اشترك بـ <b>$${prices.vipMonthly}/شهر</b>`
+        );
+        break;
+      }
+      if (wq.remaining === 0) {
+        await sendMessage(chatId, MSG.whales + "\n\n<i>⚠️ استخدمت آخر مرة مجانية اليوم. تجدد غداً أو اشترك بـ /vip</i>");
+      } else {
+        await sendMessage(chatId, MSG.whales);
+      }
       break;
+    }
 
     case "/scanner": {
       const quota = await checkScanQuota(chatId);
@@ -327,6 +352,15 @@ router.post("/telegram/webhook", async (req, res) => {
       break;
 
     case "/price": {
+      const pq = await checkQuota(chatId, "price");
+      if (!pq.allowed) {
+        const prices = await getVipPrices();
+        await sendMessage(chatId,
+          `⛔ انتهت استخداماتك المجانية لليوم (2/2)\n\n${pq.resetMsg}\n\n🔑 للاستخدام غير المحدود:\n/vip — اشترك بـ <b>$${prices.vipMonthly}/شهر</b>`
+        );
+        break;
+      }
+
       const rawSym = args[0];
       if (!rawSym) {
         await sendMessage(chatId,
@@ -359,15 +393,25 @@ router.post("/telegram/webhook", async (req, res) => {
         ? "🟢 سعر لحظي (WebSocket)"
         : "🟡 سعر مباشر — تم تفعيل التتبع لمدة ساعتين";
 
-      await sendMessage(chatId,
-        `💰 <b>${sym}</b>\n\n` +
-        `السعر: <b>$${formatPrice(price)}</b>\n` +
-        `${trackNote}`
-      );
+      const priceBody = `💰 <b>${sym}</b>\n\nالسعر: <b>$${formatPrice(price)}</b>\n${trackNote}`;
+      if (pq.remaining === 0) {
+        await sendMessage(chatId, priceBody + "\n\n<i>⚠️ استخدمت آخر مرة مجانية اليوم. تجدد غداً أو اشترك بـ /vip</i>");
+      } else {
+        await sendMessage(chatId, priceBody);
+      }
       break;
     }
 
     case "/analyze": {
+      const aq = await checkQuota(chatId, "analyze");
+      if (!aq.allowed) {
+        const prices = await getVipPrices();
+        await sendMessage(chatId,
+          `⛔ انتهت استخداماتك المجانية لليوم (2/2)\n\n${aq.resetMsg}\n\n🔑 للاستخدام غير المحدود:\n/vip — اشترك بـ <b>$${prices.vipMonthly}/شهر</b>`
+        );
+        break;
+      }
+
       const rawSym = args[0];
       if (!rawSym) {
         await sendMessage(chatId,
@@ -401,8 +445,12 @@ router.post("/telegram/webhook", async (req, res) => {
       }
 
       const signal = generateSignal(sym, price);
-      const msg = formatSignalMessage(signal);
-      await sendMessage(chatId, msg);
+      const signalMsg = formatSignalMessage(signal);
+      if (aq.remaining === 0) {
+        await sendMessage(chatId, signalMsg + "\n\n<i>⚠️ استخدمت آخر مرة مجانية اليوم. تجدد غداً أو اشترك بـ /vip</i>");
+      } else {
+        await sendMessage(chatId, signalMsg);
+      }
       break;
     }
 
